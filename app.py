@@ -61,7 +61,7 @@ class HealthMonitorHandler(BaseHTTPRequestHandler):
 
 def main():
     server = HTTPServer(
-        ("127.0.0.1", 8000),
+        ("0.0.0.0", 8000),
         HealthMonitorHandler
     )
 
