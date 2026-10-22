@@ -1,22 +1,22 @@
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+from pathlib import Path
 import json
 import os
+import shutil
 import socket
 import time
-from datetime import datetime, timezone
-
 import psutil
 
-
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
 START_TIME = time.time()
 
 
 class HealthMonitorHandler(BaseHTTPRequestHandler):
-
     def send_json(self, status_code, data):
         body = json.dumps(data).encode("utf-8")
-
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -24,8 +24,21 @@ class HealthMonitorHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        if self.path == "/":
+            dashboard = STATIC_DIR / "index.html"
 
-        if self.path == "/health":
+            if not dashboard.is_file():
+                self.send_json(500, {"error": "Dashboard file not found"})
+                return
+
+            body = dashboard.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        elif self.path == "/health":
             self.send_json(200, {
                 "status": "healthy",
                 "service": "System Health Monitor",
@@ -34,7 +47,7 @@ class HealthMonitorHandler(BaseHTTPRequestHandler):
 
         elif self.path == "/metrics":
             memory = psutil.virtual_memory()
-            disk = psutil.disk_usage(os.getcwd())
+            disk = shutil.disk_usage("/")
 
             self.send_json(200, {
                 "hostname": socket.gethostname(),
@@ -47,35 +60,21 @@ class HealthMonitorHandler(BaseHTTPRequestHandler):
                 "disk": {
                     "total_gb": round(disk.total / (1024 ** 3), 2),
                     "used_gb": round(disk.used / (1024 ** 3), 2),
-                    "percent": disk.percent
+                    "percent": round(disk.used / disk.total * 100, 1)
                 },
                 "uptime_seconds": round(time.time() - START_TIME, 2),
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
 
         else:
-            self.send_json(404, {
-                "error": "Endpoint not found"
-            })
+            self.send_json(404, {"error": "Endpoint not found"})
 
-
-def main():
-    server = HTTPServer(
-        ("0.0.0.0", 8000),
-        HealthMonitorHandler
-    )
-
-    print("System Health Monitor is running!")
-    print("Health endpoint: http://127.0.0.1:8000/health")
-    print("Metrics endpoint: http://127.0.0.1:8000/metrics")
-
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print("\nServer stopped.")
-    finally:
-        server.server_close()
+    def log_message(self, format_string, *args):
+        print(f"{self.client_address[0]} - {format_string % args}")
 
 
 if __name__ == "__main__":
-    main()
+    port = int(os.environ.get("PORT", "8000"))
+    server = HTTPServer(("0.0.0.0", port), HealthMonitorHandler)
+    print(f"System Health Monitor running on port {port}")
+    server.serve_forever()

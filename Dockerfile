@@ -1,4 +1,3 @@
-
 FROM python:3.13-slim
 
 WORKDIR /app
@@ -9,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && useradd --create-home --uid 10001 appuser
 
 COPY app.py .
+COPY static/ ./static/
 
 USER appuser
 
