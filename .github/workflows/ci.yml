@@ -30,3 +30,31 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t system-health-monitor:ci .
+
+      - name: Start Docker container
+        run: docker run -d --name system-health-monitor -p 8000:8000 system-health-monitor:ci
+
+      - name: Verify container health
+        run: |
+          for i in {1..15}; do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' system-health-monitor)
+            if [ "$STATUS" = "healthy" ]; then
+              echo "Container is healthy"
+              exit 0
+            fi
+            if [ "$STATUS" = "unhealthy" ]; then
+              docker logs system-health-monitor
+              exit 1
+            fi
+            sleep 2
+          done
+          docker logs system-health-monitor
+          exit 1
+
+      - name: Test live health endpoint
+        run: |
+          python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read().decode())"
+
+      - name: Clean up container
+        if: always()
+        run: docker rm -f system-health-monitor || true
