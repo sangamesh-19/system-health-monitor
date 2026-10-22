@@ -104,4 +104,50 @@ GitHub: https://github.com/sangamesh-19/system-health-monitor
 
 The objective is to build a practical operations project that demonstrates service health checks, system monitoring, automated testing, version control, containerization, CI/CD, and cloud deployment.
 
-**Project status:** In development.
+## Run with Docker
+
+### Build the Docker image
+
+```bash
+docker build -t system-health-monitor:1.0 .
+```
+
+### Start the container
+
+```bash
+docker run -d --name system-health-monitor -p 8000:8000 system-health-monitor:1.0
+```
+
+### Verify application health
+
+```bash
+curl http://localhost:8000/health
+```
+
+### Check system metrics
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+### View container status and logs
+
+```bash
+docker ps
+docker logs system-health-monitor
+```
+
+### Stop and remove the container
+
+```bash
+docker stop system-health-monitor
+docker rm system-health-monitor
+```
+
+## CI/CD
+
+GitHub Actions automatically runs the unit tests and builds the Docker image when changes are pushed to the `main` branch or a pull request targets `main`.
+
+## Troubleshooting
+
+If Docker Desktop cannot start its Linux engine, check the WSL service and restart Docker Desktop. Verify the engine using `docker info` before starting the application container again.
