@@ -1,5 +1,5 @@
 
-name: System Health Monitor CI
+name: System Health Monitor CI/CD
 
 on:
   push:
@@ -89,3 +89,29 @@ jobs:
       - name: Clean up container
         if: always()
         run: docker rm -f system-health-monitor || true
+
+  deploy-to-aws:
+    needs: test-and-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to AWS Lightsail
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          port: 22
+          script: |
+            set -eu
+            sudo docker pull ghcr.io/${{ github.repository_owner }}/system-health-monitor:latest
+            sudo docker rm -f system-health-monitor || true
+            sudo docker run -d \
+              --name system-health-monitor \
+              --restart unless-stopped \
+              -p 8000:8000 \
+              ghcr.io/${{ github.repository_owner }}/system-health-monitor:latest
+            sleep 5
+            sudo docker inspect --format='{{.State.Status}}' system-health-monitor
+            curl --fail --silent --show-error --max-time 5 http://127.0.0.1:8000/health
