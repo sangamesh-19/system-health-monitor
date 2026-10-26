@@ -28,7 +28,6 @@ alerts = deque(maxlen=MAX_ALERTS)
 data_lock = Lock()
 stop_event = Event()
 
-# Remember the last severity for each resource.
 previous_severities = {}
 latest_cpu_percent = 0.0
 
@@ -38,32 +37,35 @@ def timestamp():
 
 
 def add_alert(key, description, severity):
-    """Record only changes in severity for each resource."""
-    previous = previous_severities.get(key, "Info")
-
-    if previous == severity:
-        return
-
-    previous_severities[key] = severity
-
+    """Record severity changes and track alert recovery."""
     with data_lock:
-        # If this resource had an active alert, resolve it first.
+        previous = previous_severities.get(key, "Info")
+
+        if previous == severity:
+            return
+
+        previous_severities[key] = severity
+
+        # Resolve the previous alert when the severity changes.
         if previous in ("Warning", "Critical"):
+            if severity == "Info":
+                recovery_description = (
+                    f"{key.upper()} utilization returned to normal"
+                )
+            else:
+                recovery_description = (
+                    f"{key.upper()} alert changed from "
+                    f"{previous} to {severity}"
+                )
+
             alerts.appendleft({
                 "timestamp": timestamp(),
-                "description": (
-                    f"{key.upper()} utilization returned below "
-                    f"the {previous.lower()} alert level"
-                    if severity == "Info"
-                    else f"{key.upper()} alert changed from "
-                         f"{previous} to {severity}"
-                ),
-                "severity": previous,
+                "description": recovery_description,
+                "severity": "Info",
                 "status": "Resolved"
             })
 
-        # Add a new active event when entering a warning or
-        # critical state. A severity change creates a new event.
+        # Record a new active warning or critical alert.
         if severity in ("Warning", "Critical"):
             alerts.appendleft({
                 "timestamp": timestamp(),
@@ -106,7 +108,6 @@ def severity_for(value):
 def sample_metrics():
     global latest_cpu_percent
 
-    # Establish a baseline for psutil's CPU calculation.
     psutil.cpu_percent(interval=None)
 
     while not stop_event.is_set():
@@ -229,7 +230,10 @@ if __name__ == "__main__":
     sampler = Thread(target=sample_metrics, daemon=True)
     sampler.start()
 
-    server = ThreadingHTTPServer(("0.0.0.0", port), HealthMonitorHandler)
+    server = ThreadingHTTPServer(
+        ("0.0.0.0", port),
+        HealthMonitorHandler
+    )
     server.daemon_threads = True
 
     print(f"System Health Monitor running on port {port}")

@@ -7,7 +7,6 @@ from app import (
     HealthMonitorHandler,
     add_alert,
     alerts,
-    history,
     previous_severities,
     severity_for,
 )
@@ -19,7 +18,6 @@ class TestHealthMonitor(unittest.TestCase):
         self.handler = HealthMonitorHandler
 
     def test_health_endpoint(self):
-        # Verify that the health endpoint is available.
         from http.server import ThreadingHTTPServer
         from threading import Thread
         from urllib.request import urlopen
@@ -90,6 +88,7 @@ class TestHealthMonitor(unittest.TestCase):
 
     def test_severity_thresholds(self):
         self.assertEqual(severity_for(20), "Info")
+        self.assertEqual(severity_for(69.9), "Info")
         self.assertEqual(severity_for(70), "Warning")
         self.assertEqual(severity_for(84.9), "Warning")
         self.assertEqual(severity_for(85), "Critical")
@@ -111,6 +110,7 @@ class TestHealthMonitor(unittest.TestCase):
             self.assertEqual(len(cpu_alerts), 3)
             self.assertEqual(cpu_alerts[0]["severity"], "Critical")
             self.assertEqual(cpu_alerts[0]["status"], "Active")
+            self.assertEqual(cpu_alerts[1]["severity"], "Info")
             self.assertEqual(cpu_alerts[1]["status"], "Resolved")
             self.assertEqual(cpu_alerts[2]["severity"], "Warning")
             self.assertEqual(cpu_alerts[2]["status"], "Active")
@@ -124,8 +124,16 @@ class TestHealthMonitor(unittest.TestCase):
             add_alert("memory", "MEMORY utilization is 40%", "Info")
 
             self.assertEqual(len(alerts), 2)
-            self.assertEqual(alerts[0]["status"], "Resolved")
-            self.assertEqual(alerts[1]["status"], "Active")
+
+            recovery_event = alerts[0]
+            original_event = alerts[1]
+
+            self.assertEqual(recovery_event["severity"], "Info")
+            self.assertEqual(recovery_event["status"], "Resolved")
+            self.assertIn("returned to normal", recovery_event["description"])
+
+            self.assertEqual(original_event["severity"], "Critical")
+            self.assertEqual(original_event["status"], "Active")
 
     def test_no_duplicate_alert_for_same_severity(self):
         with patch("app.timestamp", return_value="test-time"):
