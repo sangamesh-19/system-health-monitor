@@ -46,7 +46,6 @@ def add_alert(key, description, severity):
 
         previous_severities[key] = severity
 
-        # Resolve the previous alert when the severity changes.
         if previous in ("Warning", "Critical"):
             if severity == "Info":
                 recovery_description = (
@@ -65,7 +64,6 @@ def add_alert(key, description, severity):
                 "status": "Resolved"
             })
 
-        # Record a new active warning or critical alert.
         if severity in ("Warning", "Critical"):
             alerts.appendleft({
                 "timestamp": timestamp(),
@@ -79,9 +77,12 @@ def collect_metrics():
     memory = psutil.virtual_memory()
     disk = shutil.disk_usage("/")
 
+    with data_lock:
+        cpu_percent = latest_cpu_percent
+
     return {
         "hostname": socket.gethostname(),
-        "cpu_percent": latest_cpu_percent,
+        "cpu_percent": cpu_percent,
         "memory": {
             "total_mb": round(memory.total / (1024 ** 2), 2),
             "used_mb": round(memory.used / (1024 ** 2), 2),
@@ -108,26 +109,32 @@ def severity_for(value):
 def sample_metrics():
     global latest_cpu_percent
 
+    # Prime CPU measurement before collecting the first sample.
     psutil.cpu_percent(interval=None)
+    next_sample = time.monotonic() + SAMPLE_INTERVAL
 
     while not stop_event.is_set():
-        if stop_event.wait(SAMPLE_INTERVAL):
+        delay = next_sample - time.monotonic()
+
+        if delay > 0 and stop_event.wait(delay):
+            break
+
+        if stop_event.is_set():
             break
 
         try:
-            cpu = psutil.cpu_percent(interval=1)
-            latest_cpu_percent = cpu
-
+            # Measure CPU over the elapsed sampling interval.
+            cpu = psutil.cpu_percent(interval=None)
             memory = psutil.virtual_memory()
             disk = shutil.disk_usage("/")
 
             memory_percent = memory.percent
             disk_percent = round(disk.used / disk.total * 100, 1)
-            sample_time = timestamp()
 
             with data_lock:
+                latest_cpu_percent = cpu
                 history.append({
-                    "timestamp": sample_time,
+                    "timestamp": timestamp(),
                     "cpu_percent": cpu,
                     "memory_percent": memory_percent
                 })
@@ -145,6 +152,16 @@ def sample_metrics():
 
         except Exception as error:
             print(f"Metrics sampling error: {error}")
+
+        # Keep the schedule aligned to five-second intervals.
+        next_sample += SAMPLE_INTERVAL
+
+        # If processing fell behind, skip missed intervals rather
+        # than generating rapid catch-up samples.
+        now = time.monotonic()
+        if next_sample <= now:
+            missed = int((now - next_sample) // SAMPLE_INTERVAL) + 1
+            next_sample += missed * SAMPLE_INTERVAL
 
 
 class HealthMonitorHandler(BaseHTTPRequestHandler):
