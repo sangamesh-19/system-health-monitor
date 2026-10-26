@@ -1,382 +1,557 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1020">
-  <title>System Health Monitor | Operations</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>System Health Monitor | Operations Center</title>
 
   <style>
     :root {
-      --bg: #0b1020;
-      --sidebar: #0e1528;
-      --panel: #121c31;
-      --panel-light: #17233b;
-      --border: #283750;
-      --text: #edf2ff;
-      --muted: #8fa2c2;
-      --blue: #60a5fa;
-      --green: #34d399;
-      --yellow: #fbbf24;
-      --red: #fb7185;
+      --page: #f5f7fb;
+      --surface: #ffffff;
+      --ink: #17233b;
+      --muted: #78859b;
+      --line: #e7ebf2;
+      --blue: #3767e8;
+      --green: #168567;
+      --amber: #b7791f;
+      --red: #d44949;
+      --sidebar: #18283e;
     }
 
     * { box-sizing: border-box; }
 
-    html { scroll-behavior: smooth; }
-
     body {
       margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
     }
 
     button { font: inherit; }
 
     .app {
       display: grid;
-      grid-template-columns: 235px minmax(0, 1fr);
+      grid-template-columns: 238px minmax(0, 1fr);
       min-height: 100vh;
     }
 
     .sidebar {
       background: var(--sidebar);
-      border-right: 1px solid var(--border);
+      color: #fff;
       padding: 27px 17px;
       display: flex;
       flex-direction: column;
-      gap: 30px;
+      gap: 32px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 11px;
-      padding: 0 7px;
+      gap: 12px;
+      padding: 0 9px;
     }
 
-    .brand-icon {
+    .brand-mark {
+      width: 43px;
+      height: 43px;
+      border-radius: 14px;
       display: grid;
       place-items: center;
-      width: 39px;
-      height: 39px;
-      border-radius: 12px;
-      background: #1d3760;
-      color: #93c5fd;
+      background: #d8e7ff;
+      color: #2453bd;
+      font-size: 22px;
       font-weight: 800;
-      font-size: 20px;
     }
 
-    .brand-name { font-weight: 750; font-size: 15px; }
-    .brand-caption { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .brand-name {
+      font-weight: 750;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .brand-caption {
+      margin-top: 3px;
+      color: #a9bad0;
+      font-size: 10px;
+      letter-spacing: 1.3px;
+    }
 
     .nav-label {
-      color: #7083a5;
+      color: #91a4bd;
       font-size: 10px;
       font-weight: 700;
       letter-spacing: 1.5px;
-      padding: 0 10px;
+      padding: 0 12px;
       margin-bottom: 10px;
     }
 
-    .nav-link {
+    .nav {
+      display: grid;
+      gap: 7px;
+    }
+
+    .nav a {
       display: flex;
       align-items: center;
-      gap: 11px;
-      color: var(--muted);
+      gap: 13px;
+      padding: 13px 12px;
+      border-radius: 10px;
+      color: #c3d0e2;
       text-decoration: none;
-      padding: 12px 11px;
-      margin: 4px 0;
-      border-radius: 9px;
-      font-size: 13px;
+      transition: background .2s;
     }
 
-    .nav-link.active {
-      color: #bfdbfe;
-      background: #1b2c49;
-      border: 1px solid #2c466d;
+    .nav a:hover, .nav a.active {
+      background: #2a405d;
+      color: #fff;
     }
 
-    .nav-icon { width: 20px; text-align: center; font-size: 16px; }
+    .nav-icon {
+      width: 25px;
+      text-align: center;
+      font-size: 18px;
+    }
 
-    .sidebar-bottom {
+    .side-note {
       margin-top: auto;
-      padding: 15px 11px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.7;
+      border: 1px solid #35475f;
+      background: #20334d;
+      padding: 15px;
+      border-radius: 14px;
     }
 
-    .sidebar-bottom strong { color: var(--text); }
+    .side-note-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
 
-    .main { min-width: 0; }
+    .side-note p {
+      color: #b4c4d8;
+      font-size: 12px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    main {
+      min-width: 0;
+      padding: 30px clamp(18px, 3vw, 42px) 35px;
+    }
 
     .topbar {
-      min-height: 84px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 20px;
-      padding: 20px 30px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(14, 21, 40, .75);
+      gap: 18px;
+      margin-bottom: 30px;
     }
 
-    .topbar h1 { font-size: 21px; margin: 0; }
-    .topbar p { color: var(--muted); margin: 6px 0 0; font-size: 12px; }
+    .eyebrow {
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      font-size: 10px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
 
-    .status {
+    h1 {
+      font-size: clamp(24px, 3vw, 32px);
+      letter-spacing: -1px;
+      margin: 0;
+    }
+
+    .subtitle {
+      margin: 9px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .connection {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      border-radius: 30px;
-      padding: 10px 14px;
-      font-size: 12px;
-      font-weight: 650;
+      gap: 9px;
+      background: white;
+      border: 1px solid var(--line);
+      padding: 11px 14px;
+      border-radius: 12px;
       white-space: nowrap;
-      background: #12372f;
-      color: #6ee7b7;
+      font-size: 12px;
+      font-weight: 700;
     }
-
-    .status.warning { background: #493819; color: #fcd34d; }
-    .status.critical, .status.error { background: #4a202d; color: #fda4af; }
 
     .dot {
-      width: 8px;
-      height: 8px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
-      background: currentColor;
+      background: var(--green);
+      box-shadow: 0 0 0 4px #e1f5ed;
     }
 
-    .content { padding: 28px 30px; max-width: 1600px; margin: auto; }
+    .dot.warning { background: var(--amber); box-shadow: 0 0 0 4px #fff1d8; }
+    .dot.critical, .dot.error { background: var(--red); box-shadow: 0 0 0 4px #fde8e8; }
 
-    .welcome {
+    .section-heading {
       display: flex;
+      align-items: end;
       justify-content: space-between;
-      align-items: flex-end;
-      gap: 15px;
-      margin-bottom: 24px;
+      gap: 12px;
+      margin: 0 0 15px;
     }
 
-    .welcome h2 { font-size: 19px; margin: 0; }
-    .welcome p { color: var(--muted); font-size: 12px; margin: 7px 0 0; }
-
-    .updated {
-      color: var(--muted);
-      font-size: 11px;
-      text-align: right;
+    h2 {
+      font-size: 16px;
+      margin: 0;
+      letter-spacing: -.2px;
     }
 
-    .section-title {
-      font-size: 14px;
-      font-weight: 700;
-      margin: 0 0 16px;
-    }
+    .muted { color: var(--muted); }
 
-    .metrics {
+    .metric-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 16px;
+      gap: 15px;
+      margin-bottom: 29px;
     }
 
-    .card {
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      padding: 19px;
       min-width: 0;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px;
+      box-shadow: 0 4px 16px #24385a05;
     }
 
     .metric-top {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       gap: 8px;
+      margin-bottom: 20px;
     }
 
-    .metric-name { color: var(--muted); font-size: 12px; }
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
 
     .metric-icon {
-      width: 34px;
-      height: 34px;
       display: grid;
       place-items: center;
-      border-radius: 10px;
-      background: #1b3150;
-      color: #93c5fd;
-      font-size: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      font-size: 18px;
     }
+
+    .icon-blue { color: #315ed4; background: #eaf0ff; }
+    .icon-green { color: #168567; background: #e1f6ed; }
+    .icon-orange { color: #a96b18; background: #fff1dc; }
+    .icon-purple { color: #7651c8; background: #f0eaff; }
 
     .metric-value {
-      font-size: 29px;
-      font-weight: 750;
+      font-size: clamp(25px, 2.5vw, 32px);
+      font-weight: 780;
       letter-spacing: -1px;
-      margin: 17px 0 7px;
       overflow-wrap: anywhere;
     }
 
-    .metric-value.warning { color: var(--yellow); }
-    .metric-value.critical { color: var(--red); }
+    .metric-unit {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0;
+    }
 
     .metric-detail {
-      font-size: 11px;
       color: var(--muted);
-      line-height: 1.6;
-      overflow-wrap: anywhere;
-      min-height: 18px;
+      font-size: 11px;
+      margin-top: 8px;
+      min-height: 15px;
     }
 
     .progress {
-      height: 6px;
-      border-radius: 8px;
-      background: #283750;
+      height: 5px;
+      background: #edf0f5;
+      border-radius: 99px;
       overflow: hidden;
-      margin-top: 18px;
+      margin-top: 16px;
     }
 
     .progress-fill {
       height: 100%;
       width: 0;
+      background: var(--blue);
       border-radius: inherit;
-      background: var(--green);
-      transition: width .4s, background .4s;
+      transition: width .35s;
     }
 
-    .progress-fill.warning { background: var(--yellow); }
+    .progress-fill.warning { background: var(--amber); }
     .progress-fill.critical { background: var(--red); }
 
-    .section { margin-top: 30px; }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
+    .chart-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+      gap: 17px;
+      margin-bottom: 29px;
     }
 
-    .section-header .section-title { margin: 0; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      padding: 21px;
+      min-width: 0;
+      box-shadow: 0 4px 16px #24385a05;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .panel-description {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
 
     .live-label {
-      font-size: 11px;
       color: var(--green);
-    }
-
-    .charts {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .chart-card { min-width: 0; }
-
-    .chart-heading {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .chart-heading h3 { font-size: 13px; margin: 0; }
-
-    .chart-current {
-      font-size: 13px;
-      color: var(--blue);
-      font-weight: 700;
-    }
-
-    .chart-subtitle {
-      color: var(--muted);
-      font-size: 11px;
-      margin-top: 7px;
+      background: #e8f7ef;
+      padding: 6px 9px;
+      border-radius: 7px;
+      font-size: 10px;
+      font-weight: 800;
+      white-space: nowrap;
     }
 
     .chart-wrap {
       position: relative;
       width: 100%;
-      height: 205px;
-      margin-top: 15px;
+      height: 220px;
+      margin-top: 14px;
     }
 
-    canvas { display: block; width: 100%; height: 100%; }
-
-    .server-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
-    .server-item {
-      padding: 16px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: var(--panel);
-      min-width: 0;
-    }
-
-    .server-label { color: var(--muted); font-size: 11px; }
-    .server-value { margin-top: 9px; font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
-
-    .endpoints {
-      margin-top: 16px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px;
-    }
-
-    .endpoint-row {
+    .chart-footer {
       display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 10px;
+    }
+
+    .lower-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+      gap: 17px;
+      align-items: start;
+    }
+
+    .server-list { margin-top: 16px; }
+
+    .server-row {
+      display: flex;
+      align-items: center;
       justify-content: space-between;
       gap: 15px;
       padding: 13px 0;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .server-row:last-child { border-bottom: 0; }
+
+    .server-key {
+      color: var(--muted);
       font-size: 12px;
     }
 
-    .endpoint-row:last-child { border-bottom: none; }
-    .endpoint-label { color: var(--muted); }
-
-    .endpoint-value {
-      color: #93c5fd;
-      overflow-wrap: anywhere;
+    .server-value {
       text-align: right;
+      font-size: 12px;
+      font-weight: 650;
+      overflow-wrap: anywhere;
     }
 
-    footer {
-      padding: 28px 15px;
-      text-align: center;
-      color: #7183a2;
+    .endpoint-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 17px;
+    }
+
+    .endpoint {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #f7f9fc;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .endpoint code {
+      color: #3656a5;
+      font-size: 12px;
+    }
+
+    .method {
+      background: #e1f6ed;
+      color: #147456;
+      padding: 5px 7px;
+      border-radius: 6px;
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .alerts-panel { margin-top: 29px; }
+
+    .alert-count {
+      background: #eef2f8;
+      color: #56647a;
+      padding: 6px 9px;
+      border-radius: 8px;
       font-size: 11px;
-      line-height: 1.8;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .alert-list { margin-top: 15px; }
+
+    .alert-item {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      padding: 15px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .alert-item:last-child { border-bottom: 0; }
+
+    .alert-symbol {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .alert-symbol.info { background: #eaf0ff; color: #315ed4; }
+    .alert-symbol.warning { background: #fff1dc; color: #a96b18; }
+    .alert-symbol.critical { background: #fde8e8; color: #c33f3f; }
+
+    .alert-description {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .alert-time {
+      color: var(--muted);
+      font-size: 10px;
+      margin-top: 5px;
+    }
+
+    .alert-badges {
+      display: flex;
+      flex-direction: column;
+      align-items: end;
+      gap: 7px;
+    }
+
+    .severity, .alert-status {
+      border-radius: 6px;
+      padding: 5px 7px;
+      font-size: 9px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .severity.info { background: #eaf0ff; color: #315ed4; }
+    .severity.warning { background: #fff1dc; color: #a96b18; }
+    .severity.critical { background: #fde8e8; color: #c33f3f; }
+    .alert-status.active { background: #fde8e8; color: #c33f3f; }
+    .alert-status.resolved { background: #e1f6ed; color: #147456; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 28px 10px;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      margin-top: 27px;
+      padding-top: 17px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .error-banner {
+      display: none;
+      background: #fff0f0;
+      color: #b33333;
+      border: 1px solid #f5cccc;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      font-size: 12px;
     }
 
     @media (max-width: 1150px) {
-      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .server-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-grid, .lower-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 760px) {
       .app { grid-template-columns: 1fr; }
-      .sidebar { padding: 15px; gap: 15px; }
-      .sidebar nav { display: flex; flex-wrap: wrap; gap: 5px; }
-      .nav-label, .sidebar-bottom { display: none; }
-      .nav-link { margin: 0; padding: 9px 11px; }
-      .topbar { padding: 18px; }
-      .content { padding: 22px 16px; }
-      .charts { grid-template-columns: 1fr; }
-      .welcome { align-items: flex-start; flex-direction: column; }
-      .updated { text-align: left; }
+      .sidebar { padding: 15px; gap: 18px; }
+      .brand { padding: 0 5px; }
+      .sidebar-nav { display: none; }
+      .side-note { display: none; }
+      main { padding: 23px 16px; }
+      .topbar { align-items: start; flex-direction: column; margin-bottom: 23px; }
+      .connection { align-self: start; }
+      .metric-grid { gap: 10px; }
+      .metric { padding: 14px; }
+      .metric-top { margin-bottom: 15px; }
+      .panel { padding: 16px; }
+      .chart-wrap { height: 200px; }
+      .footer { flex-direction: column; }
     }
 
-    @media (max-width: 480px) {
-      .metrics, .server-grid { grid-template-columns: 1fr; }
-      .topbar { align-items: flex-start; flex-direction: column; }
-      .metric-value { font-size: 27px; }
-      .chart-wrap { height: 185px; }
+    @media (max-width: 400px) {
+      .metric-grid { grid-template-columns: 1fr 1fr; }
+      .metric-value { font-size: 23px; }
+      .alert-item { grid-template-columns: 32px minmax(0, 1fr); }
+      .alert-symbol { width: 31px; height: 31px; }
+      .alert-badges { grid-column: 2; flex-direction: row; align-items: start; }
     }
   </style>
 </head>
@@ -385,372 +560,208 @@
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-icon">S</div>
+        <div class="brand-mark">SH</div>
         <div>
-          <div class="brand-name">SystemWatch</div>
-          <div class="brand-caption">INFRASTRUCTURE OPS</div>
+          <div class="brand-name">System Health Monitor</div>
+          <div class="brand-caption">OPERATIONS CENTER</div>
         </div>
       </div>
 
-      <nav aria-label="Dashboard navigation">
-        <div class="nav-label">WORKSPACE</div>
-        <a class="nav-link active" href="#overview">
-          <span class="nav-icon">▦</span> Overview
-        </a>
-        <a class="nav-link" href="#resources">
-          <span class="nav-icon">◉</span> Resources
-        </a>
-        <a class="nav-link" href="#history">
-          <span class="nav-icon">⌁</span> Performance
-        </a>
-        <a class="nav-link" href="#server">
-          <span class="nav-icon">▤</span> Server details
-        </a>
-      </nav>
+      <div class="sidebar-nav">
+        <div class="nav-label">MONITORING</div>
+        <nav class="nav">
+          <a class="active" href="#overview"><span class="nav-icon">▦</span> Overview</a>
+          <a href="#resources"><span class="nav-icon">◉</span> Resources</a>
+          <a href="#performance"><span class="nav-icon">⌁</span> Performance</a>
+          <a href="#alerts"><span class="nav-icon">⚑</span> Recent Alerts</a>
+        </nav>
 
-      <div class="sidebar-bottom">
-        <strong>Monitoring active</strong><br>
-        API polling every 5 seconds<br>
-        Python · Docker · AWS
+        <div class="nav-label" style="margin-top:28px">SYSTEM</div>
+        <nav class="nav">
+          <a href="#server"><span class="nav-icon">▤</span> Server Details</a>
+          <a href="#endpoints"><span class="nav-icon">⌘</span> API Endpoints</a>
+        </nav>
+      </div>
+
+      <div class="side-note">
+        <div class="side-note-title">Monitoring service</div>
+        <p>Live resource measurements and service health checks for your server.</p>
       </div>
     </aside>
 
-    <div class="main">
-      <header class="topbar">
+    <main>
+      <header class="topbar" id="overview">
         <div>
-          <h1>Infrastructure Overview</h1>
-          <p>Real-time system health and performance</p>
+          <div class="eyebrow">Infrastructure / Monitoring</div>
+          <h1>System Overview</h1>
+          <p class="subtitle">Monitor server health, resource usage, and recent events.</p>
         </div>
-        <div class="status" id="status" role="status" aria-live="polite">
-          <span class="dot"></span>
-          <span id="statusText">Connecting...</span>
+        <div class="connection">
+          <span class="dot" id="connectionDot"></span>
+          <span id="connectionText">Connecting to server...</span>
         </div>
       </header>
 
-      <main class="content" id="overview">
-        <div class="welcome">
-          <div>
-            <h2>Operations dashboard</h2>
-            <p>Monitor resource usage and service availability.</p>
-          </div>
-          <div class="updated">
-            LAST UPDATED<br>
-            <strong id="updated">Waiting for data...</strong>
-          </div>
+      <div class="error-banner" id="errorBanner">
+        Unable to retrieve live data. Retrying automatically.
+      </div>
+
+      <section id="resources">
+        <div class="section-heading">
+          <h2>Resource utilization</h2>
+          <span class="muted" style="font-size:11px">Refresh interval: 5 seconds</span>
         </div>
 
-        <section id="resources">
-          <h2 class="section-title">Resource utilization</h2>
+        <div class="metric-grid">
+          <article class="metric">
+            <div class="metric-top">
+              <span class="metric-label">CPU utilization</span>
+              <span class="metric-icon icon-blue">ϟ</span>
+            </div>
+            <div class="metric-value"><span id="cpuCurrent">--</span><span class="metric-unit">%</span></div>
+            <div class="metric-detail">Processor usage</div>
+            <div class="progress"><div class="progress-fill" id="cpuBar"></div></div>
+          </article>
 
-          <div class="metrics">
-            <article class="card">
-              <div class="metric-top">
-                <span class="metric-name">CPU Usage</span>
-                <span class="metric-icon">ϟ</span>
-              </div>
-              <div class="metric-value" id="cpu">--%</div>
-              <div class="metric-detail">Processor utilization</div>
-              <div class="progress"><div class="progress-fill" id="cpuBar"></div></div>
-            </article>
+          <article class="metric">
+            <div class="metric-top">
+              <span class="metric-label">Memory usage</span>
+              <span class="metric-icon icon-green">▤</span>
+            </div>
+            <div class="metric-value"><span id="memoryCurrent">--</span><span class="metric-unit">%</span></div>
+            <div class="metric-detail" id="memoryDetail">Waiting for measurements</div>
+            <div class="progress"><div class="progress-fill" id="memoryBar"></div></div>
+          </article>
 
-            <article class="card">
-              <div class="metric-top">
-                <span class="metric-name">Memory Usage</span>
-                <span class="metric-icon">▤</span>
-              </div>
-              <div class="metric-value" id="memory">--%</div>
-              <div class="metric-detail" id="memoryDetail">Waiting for metrics...</div>
-              <div class="progress"><div class="progress-fill" id="memoryBar"></div></div>
-            </article>
+          <article class="metric">
+            <div class="metric-top">
+              <span class="metric-label">Disk utilization</span>
+              <span class="metric-icon icon-orange">▱</span>
+            </div>
+            <div class="metric-value"><span id="diskCurrent">--</span><span class="metric-unit">%</span></div>
+            <div class="metric-detail" id="diskDetail">Waiting for measurements</div>
+            <div class="progress"><div class="progress-fill" id="diskBar"></div></div>
+          </article>
 
-            <article class="card">
-              <div class="metric-top">
-                <span class="metric-name">Disk Usage</span>
-                <span class="metric-icon">▰</span>
-              </div>
-              <div class="metric-value" id="disk">--%</div>
-              <div class="metric-detail" id="diskDetail">Waiting for metrics...</div>
-              <div class="progress"><div class="progress-fill" id="diskBar"></div></div>
-            </article>
+          <article class="metric">
+            <div class="metric-top">
+              <span class="metric-label">Server uptime</span>
+              <span class="metric-icon icon-purple">◷</span>
+            </div>
+            <div class="metric-value" id="uptime" style="font-size:25px">--</div>
+            <div class="metric-detail">Time since service started</div>
+          </article>
+        </div>
+      </section>
 
-            <article class="card">
-              <div class="metric-top">
-                <span class="metric-name">Server Uptime</span>
-                <span class="metric-icon">◷</span>
+      <section id="performance">
+        <div class="section-heading">
+          <h2>Performance history</h2>
+          <span class="muted" style="font-size:11px" id="historyCount">Collecting samples...</span>
+        </div>
+
+        <div class="chart-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>CPU performance</h2>
+                <p class="panel-description">Actual server measurements over time</p>
               </div>
-              <div class="metric-value" id="uptime">--</div>
-              <div class="metric-detail">Time since service started</div>
-              <div class="progress"><div class="progress-fill" style="width:100%;background:var(--blue)"></div></div>
-            </article>
+              <span class="live-label">● LIVE</span>
+            </div>
+            <div class="chart-wrap"><canvas id="cpuChart" aria-label="CPU utilization history"></canvas></div>
+            <div class="chart-footer">
+              <span>0% utilization</span>
+              <span>100% utilization</span>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Memory performance</h2>
+                <p class="panel-description">Memory usage history over time</p>
+              </div>
+              <span class="live-label">● LIVE</span>
+            </div>
+            <div class="chart-wrap"><canvas id="memoryChart" aria-label="Memory utilization history"></canvas></div>
+            <div class="chart-footer">
+              <span>0% utilization</span>
+              <span>100% utilization</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="lower-grid">
+        <article class="panel" id="server">
+          <h2>Server details</h2>
+          <p class="panel-description">Information reported by the monitoring service.</p>
+          <div class="server-list">
+            <div class="server-row"><span class="server-key">Hostname</span><span class="server-value" id="hostname">--</span></div>
+            <div class="server-row"><span class="server-key">Service status</span><span class="server-value" id="serviceState">Checking...</span></div>
+            <div class="server-row"><span class="server-key">Last updated</span><span class="server-value" id="updated">--</span></div>
+            <div class="server-row"><span class="server-key">Sampling interval</span><span class="server-value">5 seconds</span></div>
+            <div class="server-row"><span class="server-key">History capacity</span><span class="server-value">60 samples / 5 minutes</span></div>
           </div>
-        </section>
+        </article>
 
-        <section class="section" id="history">
-          <div class="section-header">
-            <h2 class="section-title">Performance history</h2>
-            <span class="live-label">● LIVE · 5-second refresh</span>
+        <article class="panel" id="endpoints">
+          <h2>API endpoints</h2>
+          <p class="panel-description">Available routes provided by the backend.</p>
+          <div class="endpoint-list">
+            <div class="endpoint"><code>GET /health</code><span class="method">HEALTH</span></div>
+            <div class="endpoint"><code>GET /metrics</code><span class="method">METRICS</span></div>
+            <div class="endpoint"><code>GET /history</code><span class="method">HISTORY</span></div>
+            <div class="endpoint"><code>GET /alerts</code><span class="method">ALERTS</span></div>
           </div>
+        </article>
+      </section>
 
-          <div class="charts">
-            <article class="card chart-card">
-              <div class="chart-heading">
-                <h3>CPU utilization</h3>
-                <span class="chart-current" id="cpuCurrent">--%</span>
-              </div>
-              <div class="chart-subtitle">Recent samples · Percent</div>
-              <div class="chart-wrap">
-                <canvas id="cpuChart" role="img" aria-label="Recent CPU utilization chart"></canvas>
-              </div>
-            </article>
-
-            <article class="card chart-card">
-              <div class="chart-heading">
-                <h3>Memory utilization</h3>
-                <span class="chart-current" id="memoryCurrent">--%</span>
-              </div>
-              <div class="chart-subtitle">Recent samples · Percent</div>
-              <div class="chart-wrap">
-                <canvas id="memoryChart" role="img" aria-label="Recent memory utilization chart"></canvas>
-              </div>
-            </article>
+      <section class="panel alerts-panel" id="alerts">
+        <div class="panel-head">
+          <div>
+            <h2>Recent Alerts</h2>
+            <p class="panel-description">Resource threshold events and their current status.</p>
           </div>
-        </section>
+          <span class="alert-count" id="alertCount">0 events</span>
+        </div>
+        <div class="alert-list" id="alertList">
+          <div class="empty-state">Loading recent alerts...</div>
+        </div>
+      </section>
 
-        <section class="section" id="server">
-          <h2 class="section-title">Server information</h2>
-
-          <div class="server-grid">
-            <div class="server-item">
-              <div class="server-label">HOSTNAME</div>
-              <div class="server-value" id="hostname">Loading...</div>
-            </div>
-            <div class="server-item">
-              <div class="server-label">SERVICE</div>
-              <div class="server-value">System Health Monitor</div>
-            </div>
-            <div class="server-item">
-              <div class="server-label">MONITORING STATUS</div>
-              <div class="server-value" id="serviceState">Checking API...</div>
-            </div>
-          </div>
-
-          <div class="endpoints">
-            <h2 class="section-title">Service endpoints</h2>
-            <div class="endpoint-row">
-              <span class="endpoint-label">Health check</span>
-              <span class="endpoint-value">GET /health</span>
-            </div>
-            <div class="endpoint-row">
-              <span class="endpoint-label">System metrics</span>
-              <span class="endpoint-value">GET /metrics</span>
-            </div>
-            <div class="endpoint-row">
-              <span class="endpoint-label">Refresh interval</span>
-              <span class="endpoint-value">5 seconds</span>
-            </div>
-          </div>
-        </section>
-
-        <footer>
-          System Health Monitor · Python · Docker · GitHub Actions · AWS Lightsail<br>
-          Metrics reflect the machine running the monitoring service.
-        </footer>
-      </main>
-    </div>
+      <footer class="footer">
+        <span>System Health Monitor · Infrastructure dashboard</span>
+        <span>Last successful update: <strong id="lastSuccess">Waiting...</strong></span>
+      </footer>
+    </main>
   </div>
 
   <script>
-    const history = { cpu: [], memory: [] };
-    const MAX_POINTS = 20;
+    const REFRESH_INTERVAL = 5000;
+    const MAX_POINTS = 60;
+
     let refreshInProgress = false;
+    let history = { cpu: [], memory: [] };
+    let lastMetrics = null;
 
-    async function refreshMetrics() {
-      if (refreshInProgress) return;
-      refreshInProgress = true;
+    const $ = (id) => document.getElementById(id);
 
-      try {
-        const response = await fetch('/metrics', { cache: 'no-store' });
-        if (!response.ok) throw new Error('Metrics endpoint returned ' + response.status);
-
-        const data = await response.json();
-
-        updateMetric('cpu', 'cpuBar', data.cpu_percent);
-        updateMetric('memory', 'memoryBar', data.memory.percent);
-        updateMetric('disk', 'diskBar', data.disk.percent);
-
-        document.getElementById('cpuCurrent').textContent =
-          Number(data.cpu_percent).toFixed(1) + '%';
-        document.getElementById('memoryCurrent').textContent =
-          Number(data.memory.percent).toFixed(1) + '%';
-
-        document.getElementById('memoryDetail').textContent =
-          `${data.memory.used_mb} MB used of ${data.memory.total_mb} MB`;
-        document.getElementById('diskDetail').textContent =
-          `${data.disk.used_gb} GB used of ${data.disk.total_gb} GB`;
-
-        document.getElementById('hostname').textContent = data.hostname;
-        document.getElementById('uptime').textContent =
-          formatUptime(data.uptime_seconds);
-        document.getElementById('updated').textContent =
-          new Date(data.timestamp).toLocaleTimeString();
-
-        addSample('cpu', data.cpu_percent);
-        addSample('memory', data.memory.percent);
-
-        drawChart('cpuChart', history.cpu, '#60a5fa');
-        drawChart('memoryChart', history.memory, '#34d399');
-
-        updateStatus(data);
-        document.getElementById('serviceState').textContent = 'API responding';
-      } catch (error) {
-        setStatus('error', 'Connection Error');
-        document.getElementById('serviceState').textContent = 'API unavailable';
-        console.error('Metrics refresh failed:', error);
-      } finally {
-        refreshInProgress = false;
-      }
+    function setConnection(state, message) {
+      $("connectionText").textContent = message;
+      $("connectionDot").className = "dot" + (state === "healthy" ? "" : " " + state);
+      $("errorBanner").style.display = state === "error" ? "block" : "none";
     }
 
-    function updateMetric(valueId, barId, value) {
-      const number = Number(value);
-      if (!Number.isFinite(number)) throw new Error('Invalid metric: ' + valueId);
+    function setProgress(id, value) {
+      const bar = $(id);
+      const number = Math.max(0, Math.min(100, Number(value) || 0));
+      bar.style.width = number + "%";
+      bar.className = "progress-fill";
 
-      const safeValue = Math.max(0, Math.min(100, number));
-      const valueElement = document.getElementById(valueId);
-      const barElement = document.getElementById(barId);
-
-      valueElement.textContent = safeValue.toFixed(1) + '%';
-      valueElement.classList.remove('warning', 'critical');
-      barElement.classList.remove('warning', 'critical');
-      barElement.style.width = safeValue + '%';
-
-      if (safeValue >= 85) {
-        valueElement.classList.add('critical');
-        barElement.classList.add('critical');
-      } else if (safeValue >= 70) {
-        valueElement.classList.add('warning');
-        barElement.classList.add('warning');
-      }
-    }
-
-    function updateStatus(data) {
-      const values = [
-        Number(data.cpu_percent),
-        Number(data.memory.percent),
-        Number(data.disk.percent)
-      ];
-
-      if (!values.every(Number.isFinite)) {
-        setStatus('error', 'Invalid Metrics');
-        return;
-      }
-
-      const highest = Math.max(...values);
-
-      if (highest >= 85) {
-        setStatus('critical', 'Critical Resource Usage');
-      } else if (highest >= 70) {
-        setStatus('warning', 'Resource Warning');
-      } else {
-        setStatus('healthy', 'System Healthy');
-      }
-    }
-
-    function setStatus(type, message) {
-      const status = document.getElementById('status');
-      status.classList.remove('warning', 'critical', 'error');
-      if (type !== 'healthy') status.classList.add(type);
-      document.getElementById('statusText').textContent = message;
-    }
-
-    function addSample(name, value) {
-      const number = Number(value);
-      if (!Number.isFinite(number)) return;
-
-      history[name].push({
-        time: new Date(),
-        value: Math.max(0, Math.min(100, number))
-      });
-
-      if (history[name].length > MAX_POINTS) history[name].shift();
-    }
-
-    function drawChart(canvasId, points, color) {
-      const canvas = document.getElementById(canvasId);
-      const rect = canvas.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-
-      const ctx = canvas.getContext('2d');
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      const width = rect.width;
-      const height = rect.height;
-      const left = 34;
-      const right = 8;
-      const top = 12;
-      const bottom = 24;
-      const chartWidth = width - left - right;
-      const chartHeight = height - top - bottom;
-
-      ctx.clearRect(0, 0, width, height);
-      ctx.font = '10px Segoe UI, Arial, sans-serif';
-      ctx.fillStyle = '#8fa2c2';
-      ctx.strokeStyle = '#283750';
-      ctx.lineWidth = 1;
-
-      [0, 25, 50, 75, 100].forEach(value => {
-        const y = top + chartHeight * (1 - value / 100);
-        ctx.beginPath();
-        ctx.moveTo(left, y);
-        ctx.lineTo(width - right, y);
-        ctx.stroke();
-        ctx.fillText(value + '%', 0, y + 3);
-      });
-
-      if (points.length === 0) {
-        ctx.fillStyle = '#8fa2c2';
-        ctx.fillText('Collecting metrics...', left + 8, top + chartHeight / 2);
-        return;
-      }
-
-      const coordinates = points.map((point, index) => ({
-        x: left + (points.length === 1 ? chartWidth / 2 :
-          index * chartWidth / (points.length - 1)),
-        y: top + chartHeight * (1 - point.value / 100)
-      }));
-
-      if (coordinates.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(coordinates[0].x, top + chartHeight);
-        coordinates.forEach(point => ctx.lineTo(point.x, point.y));
-        ctx.lineTo(coordinates[coordinates.length - 1].x, top + chartHeight);
-        ctx.closePath();
-        ctx.globalAlpha = 0.12;
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-
-      ctx.beginPath();
-      coordinates.forEach((point, index) => {
-        if (index === 0) ctx.moveTo(point.x, point.y);
-        else ctx.lineTo(point.x, point.y);
-      });
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2.5;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.stroke();
-
-      const last = coordinates[coordinates.length - 1];
-      ctx.beginPath();
-      ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
+      if (number >= 85) bar.classList.add("critical");
+      else if (number >= 70) bar.classList.add("warning");
     }
 
     function formatUptime(seconds) {
@@ -758,17 +769,264 @@
       const days = Math.floor(total / 86400);
       const hours = Math.floor((total % 86400) / 3600);
       const minutes = Math.floor((total % 3600) / 60);
-      return `${days}d ${hours}h ${minutes}m`;
+
+      if (days > 0) return `${days}d ${hours}h`;
+      if (hours > 0) return `${hours}h ${minutes}m`;
+      return `${minutes}m ${total % 60}s`;
     }
 
-    window.addEventListener('resize', () => {
-      drawChart('cpuChart', history.cpu, '#60a5fa');
-      drawChart('memoryChart', history.memory, '#34d399');
+    function formatTime(value) {
+      if (!value) return "--";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "--" : date.toLocaleTimeString();
+    }
+
+    function formatAlertTime(value) {
+      if (!value) return "Time unavailable";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "Time unavailable" : date.toLocaleString();
+    }
+
+    function prepareCanvas(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      const width = Math.max(300, rect.width);
+      const height = Math.max(170, rect.height);
+
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { ctx, width, height };
+    }
+
+    function drawChart(canvasId, samples, color) {
+      const canvas = $(canvasId);
+      if (!canvas) return;
+
+      const { ctx, width, height } = prepareCanvas(canvas);
+      const left = 35;
+      const right = 10;
+      const top = 14;
+      const bottom = 26;
+      const plotWidth = width - left - right;
+      const plotHeight = height - top - bottom;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = "10px Segoe UI, Arial";
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#e9edf4";
+      ctx.fillStyle = "#8995a8";
+
+      for (let tick = 0; tick <= 100; tick += 25) {
+        const y = top + plotHeight * (1 - tick / 100);
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(width - right, y);
+        ctx.stroke();
+        ctx.fillText(tick + "%", 1, y + 3);
+      }
+
+      if (!samples.length) {
+        ctx.fillStyle = "#78859b";
+        ctx.textAlign = "center";
+        ctx.fillText("Waiting for measurements...", width / 2, height / 2);
+        ctx.textAlign = "left";
+        return;
+      }
+
+      const points = samples.slice(-MAX_POINTS).map((sample, index, array) => {
+        const x = array.length === 1
+          ? left + plotWidth
+          : left + (index / (array.length - 1)) * plotWidth;
+        const rawValue = Number(sample.value);
+        const value = Math.max(0, Math.min(100, Number.isFinite(rawValue) ? rawValue : 0));
+        const y = top + plotHeight * (1 - value / 100);
+        return { x, y, value };
+      });
+
+      if (points.length === 1) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(points[0].x, points[0].y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          if (index === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+
+        const gradient = ctx.createLinearGradient(0, top, 0, top + plotHeight);
+        gradient.addColorStop(0, color + "30");
+        gradient.addColorStop(1, color + "00");
+
+        ctx.lineTo(points[points.length - 1].x, top + plotHeight);
+        ctx.lineTo(points[0].x, top + plotHeight);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+
+      const latest = points[points.length - 1];
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(latest.x, latest.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#78859b";
+      ctx.fillText("Older", left, height - 5);
+      ctx.textAlign = "right";
+      ctx.fillText("Latest", width - right, height - 5);
+      ctx.textAlign = "left";
+    }
+
+    function renderAlerts(items) {
+      const list = $("alertList");
+      const alerts = Array.isArray(items) ? items.slice(0, 20) : [];
+
+      $("alertCount").textContent = `${alerts.length} event${alerts.length === 1 ? "" : "s"}`;
+
+      if (!alerts.length) {
+        list.innerHTML = '<div class="empty-state">No alert events have been recorded yet.<br>Warnings will appear here when resource thresholds are crossed.</div>';
+        return;
+      }
+
+      list.replaceChildren();
+
+      alerts.forEach((alert) => {
+        const severity = String(alert.severity || "Info").toLowerCase();
+        const safeSeverity = ["info", "warning", "critical"].includes(severity) ? severity : "info";
+        const status = String(alert.status || "Active").toLowerCase();
+        const safeStatus = status === "resolved" ? "resolved" : "active";
+
+        const item = document.createElement("div");
+        item.className = "alert-item";
+
+        const symbol = document.createElement("div");
+        symbol.className = "alert-symbol " + safeSeverity;
+        symbol.textContent = safeSeverity === "critical" ? "!" : safeSeverity === "warning" ? "△" : "i";
+
+        const body = document.createElement("div");
+        const description = document.createElement("div");
+        description.className = "alert-description";
+        description.textContent = alert.description || "Resource threshold event";
+
+        const time = document.createElement("div");
+        time.className = "alert-time";
+        time.textContent = formatAlertTime(alert.timestamp);
+
+        body.append(description, time);
+
+        const badges = document.createElement("div");
+        badges.className = "alert-badges";
+
+        const severityBadge = document.createElement("span");
+        severityBadge.className = "severity " + safeSeverity;
+        severityBadge.textContent = safeSeverity.charAt(0).toUpperCase() + safeSeverity.slice(1);
+
+        const statusBadge = document.createElement("span");
+        statusBadge.className = "alert-status " + safeStatus;
+        statusBadge.textContent = safeStatus === "resolved" ? "Resolved" : "Active";
+
+        badges.append(severityBadge, statusBadge);
+        item.append(symbol, body, badges);
+        list.appendChild(item);
+      });
+    }
+
+    async function fetchJson(path) {
+      const response = await fetch(path, { cache: "no-store" });
+      if (!response.ok) throw new Error(path + " returned HTTP " + response.status);
+      return response.json();
+    }
+
+    async function refreshDashboard() {
+      if (refreshInProgress) return;
+      refreshInProgress = true;
+
+      try {
+        const [metrics, historyResult, alertsResult] = await Promise.all([
+          fetchJson("/metrics"),
+          fetchJson("/history"),
+          fetchJson("/alerts")
+        ]);
+
+        lastMetrics = metrics;
+
+        $("cpuCurrent").textContent = Number(metrics.cpu_percent).toFixed(1);
+        $("memoryCurrent").textContent = Number(metrics.memory.percent).toFixed(1);
+        $("diskCurrent").textContent = Number(metrics.disk.percent).toFixed(1);
+
+        $("memoryDetail").textContent =
+          `${metrics.memory.used_mb} MB used of ${metrics.memory.total_mb} MB`;
+        $("diskDetail").textContent =
+          `${metrics.disk.used_gb} GB used of ${metrics.disk.total_gb} GB`;
+
+        $("uptime").textContent = formatUptime(metrics.uptime_seconds);
+        $("hostname").textContent = metrics.hostname || "Unknown";
+        $("updated").textContent = formatTime(metrics.timestamp);
+        $("lastSuccess").textContent = formatTime(new Date().toISOString());
+        $("serviceState").textContent = "API responding";
+
+        setProgress("cpuBar", metrics.cpu_percent);
+        setProgress("memoryBar", metrics.memory.percent);
+        setProgress("diskBar", metrics.disk.percent);
+
+        const historySamples = Array.isArray(historyResult.samples)
+          ? historyResult.samples.slice(-MAX_POINTS)
+          : [];
+
+        history = {
+          cpu: historySamples.map(sample => ({
+            time: sample.timestamp,
+            value: sample.cpu_percent
+          })),
+          memory: historySamples.map(sample => ({
+            time: sample.timestamp,
+            value: sample.memory_percent
+          }))
+        };
+
+        $("historyCount").textContent =
+          `${historySamples.length} samples · ${historyResult.interval_seconds || 5}s interval`;
+
+        drawChart("cpuChart", history.cpu, "#3767e8");
+        drawChart("memoryChart", history.memory, "#168567");
+        renderAlerts(alertsResult.alerts || []);
+
+        const highest = Math.max(
+          Number(metrics.cpu_percent) || 0,
+          Number(metrics.memory.percent) || 0,
+          Number(metrics.disk.percent) || 0
+        );
+
+        if (highest >= 85) setConnection("critical", "Critical utilization");
+        else if (highest >= 70) setConnection("warning", "High utilization");
+        else setConnection("healthy", "Server connected");
+
+        $("errorBanner").style.display = "none";
+      } catch (error) {
+        console.error("Dashboard refresh failed:", error);
+        setConnection("error", "Connection error");
+        $("serviceState").textContent = "Unable to retrieve all data";
+      } finally {
+        refreshInProgress = false;
+      }
+    }
+
+    window.addEventListener("resize", () => {
+      if (!lastMetrics) return;
+      drawChart("cpuChart", history.cpu, "#3767e8");
+      drawChart("memoryChart", history.memory, "#168567");
     });
 
-    refreshMetrics();
-    setInterval(refreshMetrics, 5000);
+    refreshDashboard();
+    setInterval(refreshDashboard, REFRESH_INTERVAL);
   </script>
 </body>
 </html>
-```
