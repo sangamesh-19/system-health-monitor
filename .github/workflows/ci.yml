@@ -96,9 +96,65 @@ jobs:
 
   deploy-to-aws:
     needs: test-and-build
-    if: false
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
-      - name: AWS deployment temporarily disabled
-        run: echo "AWS deployment is disabled until security verification is complete."
+      - name: Deploy to AWS Lightsail
+        env:
+          AWS_HOST: ${{ secrets.AWS_HOST }}
+          AWS_USER: ${{ secrets.AWS_USER }}
+          AWS_SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
+        run: |
+          set -e
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$AWS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          ssh-keyscan -H "$AWS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          ssh -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=yes \
+            "$AWS_USER@$AWS_HOST" 'bash -s' <<'REMOTE'
+              set -e
+
+              IMAGE="ghcr.io/sangamesh-19/system-health-monitor:latest"
+              CONTAINER="system-health-monitor"
+
+              sudo docker pull "$IMAGE"
+              sudo docker rm -f "$CONTAINER" || true
+
+              sudo docker run -d \
+                --name "$CONTAINER" \
+                --restart unless-stopped \
+                -p 127.0.0.1:8000:8000 \
+                "$IMAGE"
+
+              for i in $(seq 1 15); do
+                STATUS=$(sudo docker inspect --format='{{.State.Health.Status}}' "$CONTAINER")
+
+                if [ "$STATUS" = "healthy" ]; then
+                  echo "Container is healthy"
+                  break
+                fi
+
+                if [ "$STATUS" = "unhealthy" ]; then
+                  sudo docker logs "$CONTAINER"
+                  exit 1
+                fi
+
+                if [ "$i" -eq 15 ]; then
+                  sudo docker logs "$CONTAINER"
+                  exit 1
+                fi
+
+                sleep 2
+              done
+
+              curl --fail --silent --show-error http://127.0.0.1:8000/health
+              echo
+              echo "AWS deployment completed successfully"
+          REMOTE
