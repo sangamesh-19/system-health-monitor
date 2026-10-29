@@ -42,16 +42,20 @@ jobs:
         run: |
           for i in {1..15}; do
             STATUS=$(docker inspect --format='{{.State.Health.Status}}' system-health-monitor)
+
             if [ "$STATUS" = "healthy" ]; then
               echo "Container is healthy"
               exit 0
             fi
+
             if [ "$STATUS" = "unhealthy" ]; then
               docker logs system-health-monitor
               exit 1
             fi
+
             sleep 2
           done
+
           docker logs system-health-monitor
           exit 1
 
@@ -92,26 +96,9 @@ jobs:
 
   deploy-to-aws:
     needs: test-and-build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: false
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to AWS Lightsail
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.AWS_HOST }}
-          username: ${{ secrets.AWS_USER }}
-          key: ${{ secrets.AWS_SSH_KEY }}
-          port: 22
-          script: |
-            set -eu
-            sudo docker pull ghcr.io/${{ github.repository_owner }}/system-health-monitor:latest
-            sudo docker rm -f system-health-monitor || true
-            sudo docker run -d \
-              --name system-health-monitor \
-              --restart unless-stopped \
-              -p 8000:8000 \
-              ghcr.io/${{ github.repository_owner }}/system-health-monitor:latest
-            sleep 5
-            sudo docker inspect --format='{{.State.Status}}' system-health-monitor
-            curl --fail --silent --show-error --max-time 5 http://127.0.0.1:8000/health
+      - name: AWS deployment temporarily disabled
+        run: echo "AWS deployment is disabled until security verification is complete."
