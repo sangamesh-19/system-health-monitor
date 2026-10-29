@@ -41,14 +41,14 @@ jobs:
       - name: Verify container health
         run: |
           for i in {1..15}; do
-            STATUS=$(docker inspect --format='{{.State.Health.Status}}' system-health-monitor)
+            STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' system-health-monitor)
 
             if [ "$STATUS" = "healthy" ]; then
               echo "Container is healthy"
               exit 0
             fi
 
-            if [ "$STATUS" = "unhealthy" ]; then
+            if [ "$STATUS" = "unhealthy" ] || [ "$STATUS" = "missing" ]; then
               docker logs system-health-monitor
               exit 1
             fi
@@ -106,7 +106,12 @@ jobs:
           AWS_USER: ${{ secrets.AWS_USER }}
           AWS_SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
         run: |
-          set -e
+          set -Eeuo pipefail
+          trap 'rc=$?; echo "::error::Deployment failed at line $LINENO (exit code $rc)"' ERR
+
+          : "${AWS_HOST:?AWS_HOST secret is missing}"
+          : "${AWS_USER:?AWS_USER secret is missing}"
+          : "${AWS_SSH_KEY:?AWS_SSH_KEY secret is missing}"
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -114,17 +119,24 @@ jobs:
           printf '%s\n' "$AWS_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
+          echo "Checking SSH host..."
           ssh-keyscan -H "$AWS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
+          echo "Connecting to AWS and deploying..."
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=yes \
+            -o BatchMode=yes \
             "$AWS_USER@$AWS_HOST" 'bash -s' <<'REMOTE'
-              set -e
+              set -Eeuo pipefail
+              trap 'rc=$?; echo "Remote deployment failed at line $LINENO (exit code $rc)"' ERR
 
               IMAGE="ghcr.io/sangamesh-19/system-health-monitor:latest"
               CONTAINER="system-health-monitor"
 
+              echo "Pulling Docker image..."
               sudo docker pull "$IMAGE"
+
+              echo "Replacing container..."
               sudo docker rm -f "$CONTAINER" || true
 
               sudo docker run -d \
@@ -133,20 +145,20 @@ jobs:
                 -p 127.0.0.1:8000:8000 \
                 "$IMAGE"
 
+              echo "Waiting for container health..."
+              HEALTHY=false
+
               for i in $(seq 1 15); do
-                STATUS=$(sudo docker inspect --format='{{.State.Health.Status}}' "$CONTAINER")
+                STATUS=$(sudo docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' "$CONTAINER")
 
                 if [ "$STATUS" = "healthy" ]; then
                   echo "Container is healthy"
+                  HEALTHY=true
                   break
                 fi
 
-                if [ "$STATUS" = "unhealthy" ]; then
-                  sudo docker logs "$CONTAINER"
-                  exit 1
-                fi
-
-                if [ "$i" -eq 15 ]; then
+                if [ "$STATUS" = "unhealthy" ] || [ "$STATUS" = "missing" ]; then
+                  echo "Container health check failed: $STATUS"
                   sudo docker logs "$CONTAINER"
                   exit 1
                 fi
@@ -154,6 +166,14 @@ jobs:
                 sleep 2
               done
 
+              if [ "$HEALTHY" != "true" ]; then
+                echo "Container did not become healthy in time"
+                sudo docker inspect "$CONTAINER"
+                sudo docker logs "$CONTAINER"
+                exit 1
+              fi
+
+              echo "Checking local health endpoint..."
               curl --fail --silent --show-error http://127.0.0.1:8000/health
               echo
               echo "AWS deployment completed successfully"
