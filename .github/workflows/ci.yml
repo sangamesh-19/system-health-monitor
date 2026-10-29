@@ -107,7 +107,6 @@ jobs:
           AWS_SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          trap 'rc=$?; echo "::error::Deployment failed at line $LINENO (exit code $rc)"' ERR
 
           : "${AWS_HOST:?AWS_HOST secret is missing}"
           : "${AWS_USER:?AWS_USER secret is missing}"
@@ -119,16 +118,32 @@ jobs:
           printf '%s\n' "$AWS_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-          echo "Checking SSH host..."
-          ssh-keyscan -H "$AWS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "Validating AWS host..."
+          if ! getent ahostsv4 "$AWS_HOST" >/dev/null 2>&1; then
+            echo "::error::AWS_HOST does not resolve to an IPv4 address. Check the AWS_HOST GitHub secret."
+            exit 1
+          fi
+
+          echo "Scanning SSH host key..."
+          if ! ssh-keyscan -T 10 -t ed25519,ecdsa,rsa "$AWS_HOST" > ~/.ssh/known_hosts 2> ~/.ssh/keyscan.log; then
+            cat ~/.ssh/keyscan.log
+            echo "::error::Could not obtain the SSH host key. Check AWS_HOST, server availability, and Lightsail TCP port 22."
+            exit 1
+          fi
+
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::SSH host scan returned no host keys."
+            exit 1
+          fi
 
           echo "Connecting to AWS and deploying..."
           ssh -i ~/.ssh/id_ed25519 \
+            -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             -o BatchMode=yes \
+            -o ConnectTimeout=15 \
             "$AWS_USER@$AWS_HOST" 'bash -s' <<'REMOTE'
               set -Eeuo pipefail
-              trap 'rc=$?; echo "Remote deployment failed at line $LINENO (exit code $rc)"' ERR
 
               IMAGE="ghcr.io/sangamesh-19/system-health-monitor:latest"
               CONTAINER="system-health-monitor"
@@ -136,9 +151,10 @@ jobs:
               echo "Pulling Docker image..."
               sudo docker pull "$IMAGE"
 
-              echo "Replacing container..."
+              echo "Removing previous container..."
               sudo docker rm -f "$CONTAINER" || true
 
+              echo "Starting new container..."
               sudo docker run -d \
                 --name "$CONTAINER" \
                 --restart unless-stopped \
