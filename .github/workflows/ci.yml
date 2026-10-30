@@ -97,100 +97,63 @@ jobs:
   deploy-to-aws:
     needs: test-and-build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Deploy to AWS Lightsail
-        env:
-          AWS_HOST: ${{ secrets.AWS_HOST }}
-          AWS_USER: ${{ secrets.AWS_USER }}
-          AWS_SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
         run: |
           set -Eeuo pipefail
 
-          : "${AWS_HOST:?AWS_HOST secret is missing}"
-          : "${AWS_USER:?AWS_USER secret is missing}"
-          : "${AWS_SSH_KEY:?AWS_SSH_KEY secret is missing}"
+          IMAGE="ghcr.io/sangamesh-19/system-health-monitor:latest"
+          CONTAINER="system-health-monitor"
 
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
+          echo "Logging in to GitHub Container Registry..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-          printf '%s\n' "$AWS_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          echo "Pulling latest Docker image..."
+          sudo docker pull "$IMAGE"
 
-          echo "Validating AWS host..."
-          if ! getent ahostsv4 "$AWS_HOST" >/dev/null 2>&1; then
-            echo "::error::AWS_HOST does not resolve to an IPv4 address. Check the AWS_HOST GitHub secret."
+          echo "Removing previous container..."
+          sudo docker rm -f "$CONTAINER" || true
+
+          echo "Starting new container..."
+          sudo docker run -d \
+            --name "$CONTAINER" \
+            --restart unless-stopped \
+            -p 127.0.0.1:8000:8000 \
+            "$IMAGE"
+
+          echo "Waiting for container health..."
+          HEALTHY=false
+
+          for i in $(seq 1 15); do
+            STATUS=$(sudo docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' "$CONTAINER")
+
+            if [ "$STATUS" = "healthy" ]; then
+              echo "Container is healthy"
+              HEALTHY=true
+              break
+            fi
+
+            if [ "$STATUS" = "unhealthy" ] || [ "$STATUS" = "missing" ]; then
+              sudo docker logs "$CONTAINER"
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          if [ "$HEALTHY" != "true" ]; then
+            echo "Container did not become healthy"
+            sudo docker logs "$CONTAINER"
             exit 1
           fi
 
-          echo "Scanning SSH host key..."
-          if ! ssh-keyscan -T 10 -t ed25519,ecdsa,rsa "$AWS_HOST" > ~/.ssh/known_hosts 2> ~/.ssh/keyscan.log; then
-            cat ~/.ssh/keyscan.log
-            echo "::error::Could not obtain the SSH host key. Check AWS_HOST, server availability, and Lightsail TCP port 22."
-            exit 1
-          fi
+          echo "Checking health endpoint..."
+          curl --fail --silent --show-error http://127.0.0.1:8000/health
 
-          if [ ! -s ~/.ssh/known_hosts ]; then
-            echo "::error::SSH host scan returned no host keys."
-            exit 1
-          fi
-
-          echo "Connecting to AWS and deploying..."
-          ssh -i ~/.ssh/id_ed25519 \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            -o BatchMode=yes \
-            -o ConnectTimeout=15 \
-            "$AWS_USER@$AWS_HOST" 'bash -s' <<'REMOTE'
-              set -Eeuo pipefail
-
-              IMAGE="ghcr.io/sangamesh-19/system-health-monitor:latest"
-              CONTAINER="system-health-monitor"
-
-              echo "Pulling Docker image..."
-              sudo docker pull "$IMAGE"
-
-              echo "Removing previous container..."
-              sudo docker rm -f "$CONTAINER" || true
-
-              echo "Starting new container..."
-              sudo docker run -d \
-                --name "$CONTAINER" \
-                --restart unless-stopped \
-                -p 127.0.0.1:8000:8000 \
-                "$IMAGE"
-
-              echo "Waiting for container health..."
-              HEALTHY=false
-
-              for i in $(seq 1 15); do
-                STATUS=$(sudo docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' "$CONTAINER")
-
-                if [ "$STATUS" = "healthy" ]; then
-                  echo "Container is healthy"
-                  HEALTHY=true
-                  break
-                fi
-
-                if [ "$STATUS" = "unhealthy" ] || [ "$STATUS" = "missing" ]; then
-                  echo "Container health check failed: $STATUS"
-                  sudo docker logs "$CONTAINER"
-                  exit 1
-                fi
-
-                sleep 2
-              done
-
-              if [ "$HEALTHY" != "true" ]; then
-                echo "Container did not become healthy in time"
-                sudo docker inspect "$CONTAINER"
-                sudo docker logs "$CONTAINER"
-                exit 1
-              fi
-
-              echo "Checking local health endpoint..."
-              curl --fail --silent --show-error http://127.0.0.1:8000/health
-              echo
-              echo "AWS deployment completed successfully"
-          REMOTE
+          echo
+          echo "HostPulse deployment completed successfully!"
